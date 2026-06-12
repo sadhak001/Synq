@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Schedule Assistant</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- SPLASH SCREEN -->
+  <div id="splash" class="splash">
+    <div class="splash-inner">
+      <div class="splash-icon">📅</div>
+      <h1>Smart Schedule</h1>
+      <p>Your daily schedule assistant</p>
+      <div class="splash-bar"><div class="splash-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- CHECKIN MODAL -->
+  <div id="checkin-modal" class="overlay hidden">
+    <div class="modal checkin-modal">
+      <div class="modal-icon">🌙</div>
+      <h2>Tomorrow's check-in</h2>
+      <p id="checkin-date-text">How's tomorrow looking?</p>
+      <div class="checkin-options">
+        <button class="checkin-btn busy" onclick="App.setCheckin('busy')">
+          <span class="btn-icon">🔴</span>
+          <span class="btn-text">
+            <strong>Busy day</strong>
+            <small>I have commitments, reduce my schedule</small>
+          </span>
+        </button>
+        <button class="checkin-btn moderate" onclick="App.setCheckin('moderate')">
+          <span class="btn-icon">🟡</span>
+          <span class="btn-text">
+            <strong>Moderate day</strong>
+            <small>Some free time, keep partial schedule</small>
+          </span>
+        </button>
+        <button class="checkin-btn free" onclick="App.setCheckin('free')">
+          <span class="btn-icon">🟢</span>
+          <span class="btn-text">
+            <strong>Full day</strong>
+            <small>All clear, full schedule ahead</small>
+          </span>
+        </button>
+      </div>
+      <button class="link-btn" onclick="App.dismissCheckin()">Remind me later</button>
+    </div>
+  </div>
+
+  <!-- ADD TASK MODAL -->
+  <div id="task-modal" class="overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add daily task</h3>
+        <button class="close-btn" onclick="App.closeModal('task-modal')">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Time</label>
+        <input type="time" id="modal-time">
+      </div>
+      <div class="form-group">
+        <label>Task name</label>
+        <input type="text" id="modal-task" placeholder="e.g. Deep work session">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duration</label>
+          <select id="modal-dur">
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="60" selected>1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+            <option value="180">3 hours</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="modal-cat">
+            <option value="work">💼 Work</option>
+            <option value="health">💪 Health</option>
+            <option value="learning">📚 Learning</option>
+            <option value="admin">📋 Admin</option>
+            <option value="personal">🌟 Personal</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <div class="priority-picker">
+          <label class="priority-option"><input type="radio" name="modal-priority" value="high"> <span class="p-chip high">High</span></label>
+          <label class="priority-option"><input type="radio" name="modal-priority" value="medium" checked> <span class="p-chip medium">Medium</span></label>
+          <label class="priority-option"><input type="radio" name="modal-priority" value="low"> <span class="p-chip low">Low</span></label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="App.saveTask()">Add task</button>
+        <button class="btn btn-ghost" onclick="App.closeModal('task-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD MILESTONE MODAL -->
+  <div id="mile-modal" class="overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add milestone</h3>
+        <button class="close-btn" onclick="App.closeModal('mile-modal')">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Week number</label>
+        <select id="mile-week">
+          <option value="1">Week 1</option><option value="2">Week 2</option>
+          <option value="3">Week 3</option><option value="4">Week 4</option>
+          <option value="5">Week 5</option><option value="6">Week 6</option>
+          <option value="7">Week 7</option><option value="8">Week 8</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Milestone</label>
+        <input type="text" id="mile-text" placeholder="What should be achieved by this week?">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="App.saveMilestone()">Add milestone</button>
+        <button class="btn btn-ghost" onclick="App.closeModal('mile-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" class="app hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon">📅</span>
+        <span class="brand-name">Smart Schedule</span>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-page="today" onclick="App.showPage('today')">
+          <span class="nav-icon">🏠</span><span>Today</span>
+        </button>
+        <button class="nav-item" data-page="goals" onclick="App.showPage('goals')">
+          <span class="nav-icon">🎯</span><span>Goals & Plan</span>
+        </button>
+        <button class="nav-item" data-page="log" onclick="App.showPage('log')">
+          <span class="nav-icon">✏️</span><span>Log Work</span>
+        </button>
+        <button class="nav-item" data-page="report" onclick="App.showPage('report')">
+          <span class="nav-icon">📊</span><span>Weekly Report</span>
+        </button>
+        <button class="nav-item" data-page="ai" onclick="App.showPage('ai')">
+          <span class="nav-icon">🤖</span><span>AI Coach</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="streak-card">
+          <div class="streak-num" id="sidebar-streak">0</div>
+          <div class="streak-label">day streak 🔥</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+      <!-- TODAY PAGE -->
+      <div class="page active" id="page-today">
+        <div class="page-header">
+          <div>
+            <div class="page-eyebrow" id="today-weekday">Monday</div>
+            <h1 id="today-full-date">June 12, 2026</h1>
+          </div>
+          <div class="header-actions">
+            <div class="daily-status" id="daily-status-badge">
+              <span id="status-dot" class="status-dot green"></span>
+              <span id="status-text">Full schedule</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="today-grid">
+          <!-- Progress overview -->
+          <div class="card progress-card">
+            <div class="progress-header">
+              <div>
+                <div class="card-label">Today's progress</div>
+                <div class="progress-fraction" id="today-fraction">0 / 0 tasks</div>
+              </div>
+              <div class="circle-progress" id="circle-progress">
+                <svg viewBox="0 0 60 60" width="60" height="60">
+                  <circle cx="30" cy="30" r="25" fill="none" stroke="var(--border)" stroke-width="4"/>
+                  <circle id="circle-arc" cx="30" cy="30" r="25" fill="none" stroke="var(--accent)" stroke-width="4"
+                    stroke-dasharray="157" stroke-dashoffset="157" stroke-linecap="round"
+                    transform="rotate(-90 30 30)"/>
+                </svg>
+                <span id="circle-pct" class="circle-pct">0%</span>
+              </div>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar"><div class="progress-fill" id="today-bar" style="width:0%"></div></div>
+            </div>
+          </div>
+
+          <!-- Goal countdown -->
+          <div class="card countdown-card">
+            <div class="card-label">Goal deadline</div>
+            <div class="countdown-num" id="days-left">—</div>
+            <div class="countdown-sub">days remaining</div>
+            <div class="mini-progress" id="time-progress-bar">
+              <div class="mini-fill" id="time-fill" style="width:0%"></div>
+            </div>
+            <div class="mini-labels">
+              <span>Start</span><span id="time-pct-label">0% elapsed</span><span>End</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule timeline -->
+        <div class="card" style="margin-top:1.25rem">
+          <div class="card-header">
+            <div class="card-title">Today's schedule</div>
+            <div id="busy-badge" class="hidden busy-badge">Adjusted for busy day</div>
+          </div>
+          <div id="today-timeline" class="timeline"></div>
+          <div id="today-empty" class="empty-state hidden">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">No schedule yet</div>
+            <div class="empty-sub">Go to Goals &amp; Plan to set up your daily tasks</div>
+            <button class="btn btn-primary" onclick="App.showPage('goals')">Set up plan →</button>
+          </div>
+        </div>
+
+        <!-- Milestones strip -->
+        <div class="card" style="margin-top:1.25rem" id="milestone-strip-card">
+          <div class="card-title" style="margin-bottom:0.9rem">Milestones</div>
+          <div id="milestone-strip"></div>
+        </div>
+      </div>
+
+      <!-- GOALS PAGE -->
+      <div class="page hidden" id="page-goals">
+        <div class="page-header">
+          <h1>Goals &amp; Plan</h1>
+          <button class="btn btn-primary" onclick="App.saveSetup()">Save plan</button>
+        </div>
+
+        <div class="goals-grid">
+          <div class="card">
+            <div class="card-title">2-month goal</div>
+            <div class="form-group" style="margin-top:0.75rem">
+              <label>What do you want to achieve?</label>
+              <textarea id="main-goal" rows="3" placeholder="e.g. Launch my freelance design business, get 3 paid clients, and earn ₹50,000..."></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Start date</label>
+                <input type="date" id="start-date">
+              </div>
+              <div class="form-group">
+                <label>End date (2 months)</label>
+                <input type="date" id="end-date">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Weekly milestones</div>
+              <button class="btn btn-sm" onclick="App.openModal('mile-modal')">+ Add</button>
+            </div>
+            <div id="milestones-list" class="task-list"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1rem">
+          <div class="card-header">
+            <div class="card-title">Daily schedule template</div>
+            <button class="btn btn-sm" onclick="App.openModal('task-modal')">+ Add task</button>
+          </div>
+          <p class="card-sub">These tasks repeat every day. You can mark them done from the Today tab.</p>
+          <div id="schedule-list" class="task-list"></div>
+        </div>
+      </div>
+
+      <!-- LOG PAGE -->
+      <div class="page hidden" id="page-log">
+        <div class="page-header">
+          <h1>Log Work</h1>
+        </div>
+
+        <div class="log-grid">
+          <div class="card">
+            <div class="card-title">What did you do today?</div>
+            <div class="form-group" style="margin-top:0.9rem">
+              <label>Date</label>
+              <input type="date" id="log-date">
+            </div>
+            <div class="form-group">
+              <label>Tasks completed</label>
+              <div id="log-task-checks" class="log-checks"></div>
+            </div>
+            <div class="form-group">
+              <label>Notes / reflections</label>
+              <textarea id="log-notes" rows="3" placeholder="What went well? What was hard? Any blockers?"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Rate your day</label>
+              <div class="rating-picker" id="rating-picker">
+                <button class="rating-btn" data-val="1" onclick="App.setRating(1)">😞<span>1</span></button>
+                <button class="rating-btn" data-val="2" onclick="App.setRating(2)">😕<span>2</span></button>
+                <button class="rating-btn active" data-val="3" onclick="App.setRating(3)">😐<span>3</span></button>
+                <button class="rating-btn" data-val="4" onclick="App.setRating(4)">😊<span>4</span></button>
+                <button class="rating-btn" data-val="5" onclick="App.setRating(5)">🤩<span>5</span></button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="App.saveLog()">Save today's log</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Recent logs</div>
+            <div id="log-history" class="log-history"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORT PAGE -->
+      <div class="page hidden" id="page-report">
+        <div class="page-header">
+          <h1>Weekly Report</h1>
+          <div class="week-nav">
+            <button class="btn btn-sm" onclick="App.changeWeek(-1)">← Prev</button>
+            <span id="week-label">This week</span>
+            <button class="btn btn-sm" onclick="App.changeWeek(1)">Next →</button>
+          </div>
+        </div>
+
+        <div class="metrics-row" id="report-metrics"></div>
+
+        <div class="report-grid">
+          <div class="card">
+            <div class="card-title">Daily completion this week</div>
+            <div class="bar-chart" id="week-bar-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Mood trend</div>
+            <div class="mood-chart" id="mood-chart"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1rem">
+          <div class="card-title">Progress vs plan</div>
+          <div id="progress-vs-plan" class="progress-comparison"></div>
+        </div>
+
+        <div class="card" style="margin-top:1rem">
+          <div class="card-title">Task breakdown</div>
+          <div id="task-breakdown" class="task-breakdown"></div>
+        </div>
+      </div>
+
+      <!-- AI COACH PAGE -->
+      <div class="page hidden" id="page-ai">
+        <div class="page-header">
+          <h1>AI Coach</h1>
+        </div>
+
+        <div class="ai-layout">
+          <div class="ai-sidebar">
+            <div class="card">
+              <div class="card-title">Quick prompts</div>
+              <div class="quick-prompts">
+                <button class="quick-btn" onclick="App.setAiQ('I am falling behind my schedule. Analyse my progress and give me a realistic recovery plan for the next 7 days.')">🔴 I am falling behind</button>
+                <button class="quick-btn" onclick="App.setAiQ('I have a very busy day tomorrow with no time for my usual work. How should I restructure my schedule?')">📅 Busy day tomorrow</button>
+                <button class="quick-btn" onclick="App.setAiQ('Analyse my weekly progress and tell me honestly if I am on track to hit my 2-month goal.')">📊 Am I on track?</button>
+                <button class="quick-btn" onclick="App.setAiQ('I have been doing well and am ahead of schedule. How can I use this advantage to get even further ahead?')">🚀 I am ahead — maximize it</button>
+                <button class="quick-btn" onclick="App.setAiQ('I keep losing motivation midweek. Give me practical strategies to stay consistent and energised.')">⚡ Motivation is low</button>
+                <button class="quick-btn" onclick="App.setAiQ('Suggest a better daily schedule arrangement that could improve my productivity based on my current tasks.')">🗓️ Optimise my schedule</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-main">
+            <div class="card ai-input-card">
+              <div class="form-group">
+                <label>Ask your coach anything</label>
+                <textarea id="ai-input" rows="4" placeholder="Describe your situation, ask for a recovery plan, request schedule adjustments..."></textarea>
+              </div>
+              <button class="btn btn-primary" id="ai-ask-btn" onclick="App.askAI()">
+                <span class="btn-inner">Ask AI coach →</span>
+                <span class="btn-loading hidden">Thinking...</span>
+              </button>
+            </div>
+
+            <div id="ai-response-area"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="state.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
